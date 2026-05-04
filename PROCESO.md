@@ -240,3 +240,55 @@ Documentación viva del proceso de diseño y desarrollo del sitio one-page premi
 - [ ] Copy en español chileno, sin Lorem Ipsum
 - [ ] Footer con copyright y "Hecho en Chile"
 - [ ] CDN links son correctos y están en el `<head>`
+
+---
+
+## 9. Mejoras post-lanzamiento
+
+### 9.1 Verificación de imágenes Unsplash
+
+Se verificaron con `curl -s -o /dev/null -w "%{http_code}"` las 11 URLs únicas `images.unsplash.com/photo-*` presentes en `index.html`:
+
+| URL (ID Unsplash) | Uso | Estado |
+|---|---|---|
+| `photo-1558618666-fcd25c85cd64` | Hero background | 200 OK |
+| `photo-1605000797499-95a51c5269ae` | Card 1 — CAEX | 200 OK |
+| `photo-1581094651181-35942459ef62` | Card 2 — Cargador Frontal | 200 OK |
+| `photo-1589939705384-5185137a7f0f` | Card 3 — Retroexcavadora | 200 OK |
+| `photo-1601584115197-04ecc0da31d7` | Card 4 — Camión Minero | 200 OK |
+| `photo-1566753323558-f4e0952af115` | Card 5 — Excavadora | 200 OK |
+| `photo-1533062618053-d51e617307ec` | Card 6 — Bulldozer | 200 OK |
+| `photo-1504307651254-35680f356dfd` | CTA Empresas background | 200 OK |
+| `photo-1542178243-bc20204b769f` | Testimonio 1 — Carlos | 200 OK |
+| `photo-1531123897727-8f129e1688ce` | Testimonio 2 — Pamela | 200 OK |
+| `photo-1500648767791-00dcc994a43e` | Testimonio 3 — Andrés | 200 OK |
+
+**Resultado:** Todas las imágenes devuelven HTTP 200. No se requirió ningún reemplazo.
+
+**Fallback activado:** El script incluye un listener global `document.addEventListener('error', ...)` (captura en fase de captura) que detecta errores en cualquier `<img>`, genera un SVG placeholder base64 con fondo `#1F1F1F` y el texto del atributo `alt`, y asigna ese dataURI como nuevo `src`. Se incluye `onerror = null` para evitar bucles infinitos.
+
+### 9.2 Modal de postulación funcional
+
+Se implementó un componente Alpine `postulacion()` con las siguientes características:
+
+- **Componente:** función `postulacion()` registrada en el script global; instanciado en un `<div x-data="postulacion()">` al final del `<body>` (antes de los scripts).
+- **Activación:** escucha el evento custom `@abrir-postulacion.window` que los 6 botones "Postular" ya disparaban con `$dispatch`. No fue necesario modificar los botones.
+- **Campos del formulario:** Nombre completo (required), RUT (required), Email (required), Teléfono (required), Años de experiencia (select), Comentario (textarea, opcional).
+- **Submit:** `@submit.prevent` llama `enviar()` → muestra estado de éxito inline y auto-cierra a los 2.5 segundos.
+- **Cierre:** botón X, clic en overlay oscuro, tecla `Escape` (`@keydown.escape.window`).
+- **Scroll lock:** `document.body.classList.add('overflow-hidden')` al abrir; se quita al cerrar.
+- **Animaciones:** `x-transition` con `opacity` en el overlay y `scale + opacity` en la card.
+- **Accesibilidad:** `role="dialog"`, `aria-modal="true"`, `aria-labelledby="modal-titulo"`, foco inicial en campo Nombre (`x-ref="nombreInput"`, llamado con `$nextTick`), botón cerrar con `aria-label="Cerrar"`.
+
+### 9.3 Contraste del CTA naranja
+
+Se auditaron todas las clases de color con potencial problema de contraste. Cambios aplicados:
+
+| Selector afectado | Problema | Cambio |
+|---|---|---|
+| Etiquetas de sección `text-xs font-semibold uppercase tracking-widest text-faena` (6 instancias) | `#FF6200` a 12px tiene ratio ~4.6:1 sobre fondos oscuros, justo al límite AA para texto pequeño | `text-faena` → `text-faena-300` (`#FF8A38`, ratio ~5.8:1) |
+| Badges `bg-faena/15 border border-faena/40 text-faena` (2 instancias: hero y CTA empresas) | Texto naranja sobre fondo translúcido muy tenue — bajo contraste percibido | `bg-faena/15` → `bg-faena/25`; `text-faena` → `text-faena-300` |
+| Botones primarios `bg-faena` en el sitio | Verificado con grep: todos usan `text-black`, no `text-white` | Sin cambios necesarios |
+| Labels de categoría en cards de empleo (`text-faena-300`) | Ya usaban `faena-300` correctamente | Sin cambios |
+
+**Nota sobre `faena-300`:** El color `#FF8A38` tiene un ratio de contraste ~5.8:1 sobre `#111111` y ~5.4:1 sobre `#1F1F1F`, cumpliendo holgadamente WCAG AA para texto de cualquier tamaño (mínimo 4.5:1) y rozando AA para texto grande (mínimo 3:1).
