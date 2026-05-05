@@ -33,14 +33,9 @@ function SignUpContent() {
       if (signUpError) throw signUpError;
 
       if (data.user) {
-        await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email,
-            role,
-          });
-
+        // El trigger on_auth_user_created (migración 008) crea la fila en
+        // public.users automáticamente leyendo el rol desde raw_user_meta_data.
+        // No hacemos INSERT manual: causaría duplicate key error.
         router.push(`/auth/setup-profile?role=${role}`);
       }
     } catch (err: any) {
