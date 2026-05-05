@@ -1,0 +1,28 @@
+node_modules/
+.env
+
+# Next.js
+.next/
+out/
+
+# PWA — generados en build por next-pwa, no commitear
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+
+# Entorno local
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
