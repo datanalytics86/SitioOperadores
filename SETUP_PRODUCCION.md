@@ -5,10 +5,13 @@
 Tu Supabase está ya configurada. Verifica:
 
 ```bash
-# Variables en .env
-NEXT_PUBLIC_SUPABASE_URL=https://dtxenrtwddzdxcppypwn.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# Variables en .env.local (ver .env.local.example)
+NEXT_PUBLIC_SUPABASE_URL=<tu-project-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
 ```
+
+> La anon key es semi-pública (RLS la protege), pero igualmente no debe
+> commitearse al repo. La **service_role key NUNCA** debe estar aquí.
 
 ### Verificar migraciones en Supabase
 
