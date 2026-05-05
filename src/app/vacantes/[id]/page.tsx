@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { Vacante } from '@/types';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 
 export default function VacantePage() {
+  const supabase = createClient();
   const params = useParams();
   const [vacante, setVacante] = useState<Vacante | null>(null);
   const [loading, setLoading] = useState(true);

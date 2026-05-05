@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export default function EmpresaDashboard() {
+  const supabase = createClient();
   const router = useRouter();
   const [empresa, setEmpresa] = useState<any>(null);
   const [vacantes, setVacantes] = useState<any[]>([]);
