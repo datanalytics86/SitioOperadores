@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
 function SignUpContent() {
+  const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = (searchParams.get('role') || 'operador') as 'operador' | 'empresa';

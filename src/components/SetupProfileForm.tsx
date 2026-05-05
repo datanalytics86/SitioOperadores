@@ -2,9 +2,10 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 function SetupForm() {
+  const supabase = createClient();
   const searchParams = useSearchParams();
   const router = useRouter();
   const role = (searchParams.get('role') || 'operador') as 'operador' | 'empresa';
