@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-800 text-white font-sans;
+  }
+
+  h1 {
+    @apply font-display;
+  }
+
+  h2 {
+    @apply font-semibold;
+  }
+
+  h3 {
+    @apply font-semibold;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-faena text-black font-semibold rounded-lg hover:bg-faena-600 transition-colors focus:outline-none focus:ring-2 focus:ring-faena focus:ring-offset-2 focus:ring-offset-ink-800;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-ink-700 text-white font-semibold rounded-lg border border-faena/40 hover:bg-ink-600 transition-colors focus:outline-none focus:ring-2 focus:ring-faena focus:ring-offset-2 focus:ring-offset-ink-800;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 text-faena-300 hover:text-faena transition-colors focus:outline-none;
+  }
+
+  .card {
+    @apply bg-ink-700 rounded-lg border border-ink-600 hover:border-faena/40 transition-all shadow-card hover:shadow-card-hover overflow-hidden;
+  }
+
+  .reveal {
+    @apply opacity-0 animate-fade-in;
+  }
+
+  .reveal.visible {
+    @apply opacity-100;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-faena-300;
+  }
+}
+
+/* Scroll lock for modals */
+body.overflow-hidden {
+  overflow: hidden;
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
