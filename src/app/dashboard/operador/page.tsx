@@ -17,6 +17,7 @@ export default function OperadorDashboard() {
   const [operador, setOperador] = useState<any>(null);
   const [postulaciones, setPostulaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCv, setUploadingCv] = useState(false);
@@ -38,24 +39,31 @@ export default function OperadorDashboard() {
 
         setUserId(authUser.id);
 
-        const { data: operadorData } = await supabase
+        const { data: operadorData, error: opError } = await supabase
           .from('operadores')
           .select('*')
           .eq('user_id', authUser.id)
           .maybeSingle();
 
-        if (operadorData) {
-          setOperador(operadorData);
+        if (opError) throw opError;
 
-          const { data: postulacionesData } = await supabase
-            .from('postulaciones')
-            .select('*, vacantes(titulo, empresa_id, empresas(nombre))')
-            .eq('operador_id', operadorData.id);
-
-          setPostulaciones(postulacionesData || []);
+        if (!operadorData) {
+          router.push('/auth/setup-profile?role=operador');
+          return;
         }
-      } catch (error) {
-        console.error('Error:', error);
+
+        setOperador(operadorData);
+
+        const { data: postulacionesData, error: postError } = await supabase
+          .from('postulaciones')
+          .select('*, vacantes(titulo, empresa_id, empresas(nombre))')
+          .eq('operador_id', operadorData.id);
+
+        if (postError) throw postError;
+
+        setPostulaciones(postulacionesData || []);
+      } catch (err: any) {
+        setLoadError(err?.message || 'No pudimos cargar tu dashboard. Intenta de nuevo.');
       } finally {
         setLoading(false);
       }
@@ -146,6 +154,24 @@ export default function OperadorDashboard() {
         <Navbar />
         <main className="min-h-screen bg-ink-800 pt-20 flex items-center justify-center">
           <p className="text-gray-400">Cargando...</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-ink-800 pt-20 flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <h1 className="text-2xl font-bold text-white mb-3">No pudimos cargar tu dashboard</h1>
+            <p className="text-gray-400 mb-6 text-sm">{loadError}</p>
+            <button onClick={() => window.location.reload()} className="btn-primary px-6">
+              Reintentar
+            </button>
+          </div>
         </main>
         <Footer />
       </>
@@ -271,9 +297,13 @@ export default function OperadorDashboard() {
                 <p className="text-white">{operador?.ciudad}</p>
               </div>
             </div>
-            <Link href="#" className="btn-secondary mt-6 inline-block">
-              Editar perfil
-            </Link>
+            <p className="text-xs text-gray-500 mt-6">
+              ¿Necesitas editar estos datos? Próximamente. Por ahora, contáctanos en{' '}
+              <a href="mailto:contacto@operadoresfaena.cl" className="text-faena-300 hover:text-faena">
+                contacto@operadoresfaena.cl
+              </a>
+              .
+            </p>
           </div>
 
           <div className="card p-8">

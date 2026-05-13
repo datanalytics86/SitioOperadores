@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 interface Vacante {
@@ -18,19 +18,14 @@ interface Props {
   onClose: () => void;
 }
 
-type Step = 'form' | 'success' | 'login';
+type Step = 'loading' | 'form' | 'success' | 'login';
 
 export default function PostulacionModal({ vacante, onClose }: Props) {
-  const [step, setStep] = useState<Step>('form');
+  const supabase = createClient();
+  const [step, setStep] = useState<Step>('loading');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [operadorProfile, setOperadorProfile] = useState<any>(null);
-
-  // Form fields (for unauthenticated users)
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [experiencia, setExperiencia] = useState('1-3');
   const [comentario, setComentario] = useState('');
 
   useEffect(() => {
@@ -41,50 +36,43 @@ export default function PostulacionModal({ vacante, onClose }: Props) {
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: op } = await supabase
-          .from('operadores')
-          .select('id, nombre_completo, telefono')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        setOperadorProfile(op || null);
-        if (op) {
-          setNombre(op.nombre_completo || '');
-          setTelefono(op.telefono || '');
-        }
+      if (!user) {
+        setStep('login');
+        return;
+      }
+      const { data: op } = await supabase
+        .from('operadores')
+        .select('id, nombre_completo, telefono')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (op) {
+        setOperadorProfile(op);
+        setStep('form');
+      } else {
+        setStep('login');
       }
     };
     check();
-  }, []);
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!operadorProfile) {
+      setStep('login');
+      return;
+    }
     setError('');
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user && operadorProfile) {
-        // Logged in with profile — direct postulation
-        const { error: err } = await supabase.from('postulaciones').insert({
-          vacante_id: vacante.id,
-          operador_id: operadorProfile.id,
-          estado: 'pendiente',
-        });
-        if (err) throw err;
-      } else if (user && !operadorProfile) {
-        // Logged in but no profile yet
-        setStep('login');
-        setLoading(false);
-        return;
-      } else {
-        // Not logged in — show link to signup
-        setStep('login');
-        setLoading(false);
-        return;
-      }
-
+      const { error: err } = await supabase.from('postulaciones').insert({
+        vacante_id: vacante.id,
+        operador_id: operadorProfile.id,
+        estado: 'pendiente',
+        mensaje: comentario || null,
+      });
+      if (err) throw err;
       setStep('success');
     } catch (err: any) {
       if (err.message?.includes('duplicate') || err.code === '23505') {
@@ -129,6 +117,13 @@ export default function PostulacionModal({ vacante, onClose }: Props) {
 
         {/* Body */}
         <div className="p-6">
+          {step === 'loading' && (
+            <div className="text-center py-8">
+              <span className="inline-block w-6 h-6 border-2 border-faena border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-400 text-sm mt-3">Verificando perfil…</p>
+            </div>
+          )}
+
           {step === 'success' && (
             <div className="text-center py-4">
               <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -171,96 +166,37 @@ export default function PostulacionModal({ vacante, onClose }: Props) {
             </div>
           )}
 
-          {step === 'form' && (
+          {step === 'form' && operadorProfile && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {operadorProfile ? (
-                /* Logged in with profile — show quick confirm */
-                <div className="bg-ink-800 rounded-xl border border-ink-600 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-faena/20 border border-faena/30 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-faena" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-white font-semibold text-sm">{operadorProfile.nombre_completo}</p>
-                      {operadorProfile.telefono && (
-                        <p className="text-gray-400 text-xs">{operadorProfile.telefono}</p>
-                      )}
-                    </div>
-                    <span className="ml-auto px-2 py-0.5 bg-green-500/20 text-green-300 text-xs font-semibold rounded-full">
-                      Verificado
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                /* Not logged in — collect basic info */
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1.5">Nombre *</label>
-                      <input
-                        type="text"
-                        value={nombre}
-                        onChange={e => setNombre(e.target.value)}
-                        required
-                        placeholder="Juan Pérez"
-                        className="w-full px-3 py-2.5 bg-ink-800 border border-ink-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-faena"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1.5">Teléfono *</label>
-                      <input
-                        type="tel"
-                        value={telefono}
-                        onChange={e => setTelefono(e.target.value)}
-                        required
-                        placeholder="+56 9 XXXX"
-                        className="w-full px-3 py-2.5 bg-ink-800 border border-ink-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-faena"
-                      />
-                    </div>
+              <div className="bg-ink-800 rounded-xl border border-ink-600 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-faena/20 border border-faena/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-faena" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5">Correo electrónico *</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      placeholder="tu@email.com"
-                      className="w-full px-3 py-2.5 bg-ink-800 border border-ink-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-faena"
-                    />
+                    <p className="text-white font-semibold text-sm">{operadorProfile.nombre_completo}</p>
+                    {operadorProfile.telefono && (
+                      <p className="text-gray-400 text-xs">{operadorProfile.telefono}</p>
+                    )}
                   </div>
-                </>
-              )}
-
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Años de experiencia con {vacante.equipo_requerido}</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {['<1', '1-3', '3-7', '7+'].map(v => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setExperiencia(v)}
-                      className={`py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                        experiencia === v
-                          ? 'bg-faena/20 border-faena/60 text-faena-300'
-                          : 'bg-ink-800 border-ink-600 text-gray-400 hover:border-faena/30'
-                      }`}
-                    >
-                      {v} años
-                    </button>
-                  ))}
+                  <span className="ml-auto px-2 py-0.5 bg-green-500/20 text-green-300 text-xs font-semibold rounded-full">
+                    Verificado
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Mensaje para la empresa (opcional)</label>
+                <label htmlFor="postulacion-mensaje" className="block text-xs font-medium text-gray-400 mb-1.5">
+                  Mensaje para la empresa (opcional)
+                </label>
                 <textarea
+                  id="postulacion-mensaje"
                   value={comentario}
-                  onChange={e => setComentario(e.target.value)}
+                  onChange={(e) => setComentario(e.target.value)}
                   rows={3}
-                  placeholder="Destaca tu experiencia, certificaciones o disponibilidad..."
+                  placeholder="Destaca tu experiencia, certificaciones o disponibilidad…"
                   className="w-full px-3 py-2.5 bg-ink-800 border border-ink-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-faena resize-none"
                 />
               </div>
@@ -279,19 +215,13 @@ export default function PostulacionModal({ vacante, onClose }: Props) {
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      Enviando...
+                      Enviando…
                     </span>
-                  ) : 'Enviar postulación'}
+                  ) : (
+                    'Enviar postulación'
+                  )}
                 </button>
               </div>
-
-              {!operadorProfile && (
-                <p className="text-center text-xs text-gray-500">
-                  ¿Tienes cuenta?{' '}
-                  <Link href="/auth/login" className="text-faena-300 hover:text-faena">Inicia sesión</Link>
-                  {' '}para postular más rápido
-                </p>
-              )}
             </form>
           )}
         </div>
