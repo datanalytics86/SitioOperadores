@@ -13,6 +13,7 @@ export default function EmpresaDashboard() {
   const [empresa, setEmpresa] = useState<any>(null);
   const [vacantes, setVacantes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -24,33 +25,38 @@ export default function EmpresaDashboard() {
           return;
         }
 
-        // Fetch empresa profile
-        const { data: empresaData } = await supabase
+        const { data: empresaData, error: empError } = await supabase
           .from('empresas')
           .select('*')
           .eq('user_id', authUser.id)
           .maybeSingle();
 
-        if (empresaData) {
-          setEmpresa(empresaData);
+        if (empError) throw empError;
 
-          // Fetch vacantes
-          const { data: vacantesData } = await supabase
-            .from('vacantes')
-            .select('*')
-            .eq('empresa_id', empresaData.id);
-
-          setVacantes(vacantesData || []);
+        if (!empresaData) {
+          router.push('/auth/setup-profile?role=empresa');
+          return;
         }
-      } catch (error) {
-        console.error('Error:', error);
+
+        setEmpresa(empresaData);
+
+        const { data: vacantesData, error: vacError } = await supabase
+          .from('vacantes')
+          .select('*')
+          .eq('empresa_id', empresaData.id);
+
+        if (vacError) throw vacError;
+
+        setVacantes(vacantesData || []);
+      } catch (err: any) {
+        setLoadError(err?.message || 'No pudimos cargar tu dashboard. Intenta de nuevo.');
       } finally {
         setLoading(false);
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -63,6 +69,24 @@ export default function EmpresaDashboard() {
         <Navbar />
         <main className="min-h-screen bg-ink-800 pt-20 flex items-center justify-center">
           <p className="text-gray-400">Cargando...</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-ink-800 pt-20 flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <h1 className="text-2xl font-bold text-white mb-3">No pudimos cargar tu dashboard</h1>
+            <p className="text-gray-400 mb-6 text-sm">{loadError}</p>
+            <button onClick={() => window.location.reload()} className="btn-primary px-6">
+              Reintentar
+            </button>
+          </div>
         </main>
         <Footer />
       </>
@@ -108,9 +132,13 @@ export default function EmpresaDashboard() {
                 <p className="text-white">{empresa?.ciudad}</p>
               </div>
             </div>
-            <Link href="#" className="btn-secondary mt-6 inline-block">
-              Editar empresa
-            </Link>
+            <p className="text-xs text-gray-500 mt-6">
+              ¿Necesitas editar estos datos? Próximamente. Por ahora, contáctanos en{' '}
+              <a href="mailto:contacto@operadoresfaena.cl" className="text-faena-300 hover:text-faena">
+                contacto@operadoresfaena.cl
+              </a>
+              .
+            </p>
           </div>
 
           {/* Vacantes */}

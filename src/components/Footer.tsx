@@ -99,9 +99,15 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} OperadoresFaena.cl &mdash; Hecho en Chile
           </p>
           <div className="flex gap-5">
-            {['Privacidad', 'Términos', 'Cookies'].map(l => (
-              <a key={l} href="#" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">{l}</a>
-            ))}
+            <Link href="/privacidad" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+              Privacidad
+            </Link>
+            <Link href="/terminos" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+              Términos
+            </Link>
+            <Link href="/cookies" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+              Cookies
+            </Link>
           </div>
         </div>
       </div>
