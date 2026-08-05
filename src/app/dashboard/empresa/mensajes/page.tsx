@@ -53,8 +53,7 @@ function MensajesContent() {
         .eq('vacantes.empresa_id', empresa.id)
         .limit(50);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped = ((posts as any[]) || []).map((p) => {
+      const mapped = ((posts as unknown as Array<Record<string, unknown>>) || []).map((p) => {
         const vac = Array.isArray(p.vacantes) ? p.vacantes[0] : p.vacantes;
         const op = Array.isArray(p.operador) ? p.operador[0] : p.operador;
         return {

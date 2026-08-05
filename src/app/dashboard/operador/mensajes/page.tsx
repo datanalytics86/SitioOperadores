@@ -50,11 +50,16 @@ function MensajesContent() {
         .eq('operador_id', op.id)
         .limit(50);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setThreads(
-        ((posts as any[]) || []).map((p) => {
-          const vac = Array.isArray(p.vacantes) ? p.vacantes[0] : p.vacantes;
-          const emp = Array.isArray(vac?.empresas) ? vac?.empresas[0] : vac?.empresas;
+        ((posts as unknown as Array<Record<string, unknown>>) || []).map((p) => {
+          const vacRaw = p.vacantes;
+          const vac = (Array.isArray(vacRaw) ? vacRaw[0] : vacRaw) as
+            | Record<string, unknown>
+            | undefined;
+          const empRaw = vac?.empresas;
+          const emp = (Array.isArray(empRaw) ? empRaw[0] : empRaw) as
+            | Record<string, unknown>
+            | undefined;
           return {
             vacante_id: p.vacante_id as string,
             empresa_id: (vac?.empresa_id as string) || '',

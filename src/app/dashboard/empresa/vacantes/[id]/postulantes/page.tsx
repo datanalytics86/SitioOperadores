@@ -82,8 +82,9 @@ export default function PostulantesPage() {
 
         if (pErr) throw pErr;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped: Postulacion[] = ((data as any[]) || []).map((row) => ({
+        const mapped: Postulacion[] = (
+          (data as unknown as Array<Record<string, unknown>>) || []
+        ).map((row) => ({
           id: row.id as string,
           estado: row.estado as Postulacion['estado'],
           mensaje: (row.mensaje as string) ?? null,
