@@ -31,8 +31,8 @@ module.exports = {
         chile: '#0033A0',
       },
       fontFamily: {
-        display: ['"Bebas Neue"', 'Impact', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-bebas)', '"Bebas Neue"', 'Impact', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'glow-faena': '0 10px 40px -10px rgba(255, 98, 0, 0.55)',

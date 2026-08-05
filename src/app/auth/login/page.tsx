@@ -4,6 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { loginSchema } from '@/lib/validations/auth';
+import { dashboardPathForRole } from '@/lib/auth/roles';
+import { checkAuthRateLimit } from '@/lib/auth/check-rate-limit';
 
 export default function Login() {
   const supabase = createClient();
@@ -19,29 +22,43 @@ export default function Login() {
     setLoading(true);
 
     try {
+      const rl = await checkAuthRateLimit('login');
+      if (!rl.ok) throw new Error(rl.error || 'Demasiados intentos');
+
+      const parsed = loginSchema.safeParse({ email, password });
+      if (!parsed.success) {
+        throw new Error(parsed.error.errors[0]?.message || 'Datos inválidos');
+      }
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: parsed.data.email,
+        password: parsed.data.password,
       });
 
       if (signInError) throw signInError;
 
       if (data.user) {
-        // Get user role
         const { data: userData } = await supabase
           .from('users')
           .select('role')
           .eq('id', data.user.id)
           .maybeSingle();
 
-        if (userData?.role === 'operador') {
-          router.push('/dashboard/operador');
-        } else if (userData?.role === 'empresa') {
-          router.push('/dashboard/empresa');
-        }
+        router.push(dashboardPathForRole(userData?.role));
+        router.refresh();
       }
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      // Mensaje genérico ante credenciales inválidas (no filtrar existencia de email)
+      if (
+        typeof message === 'string' &&
+        (message.toLowerCase().includes('invalid') ||
+          message.toLowerCase().includes('credentials'))
+      ) {
+        setError('Correo o contraseña incorrectos');
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -62,33 +79,46 @@ export default function Login() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                className="block text-sm font-medium text-gray-300 mb-2"
+                htmlFor="login-email"
+              >
                 Correo electrónico
               </label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-faena"
                 placeholder="tu@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                className="block text-sm font-medium text-gray-300 mb-2"
+                htmlFor="login-password"
+              >
                 Contraseña
               </label>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-faena"
                 placeholder="Tu contraseña"
               />
               <div className="mt-2 text-right">
-                <Link href="/auth/forgot-password" className="text-sm text-faena-300 hover:text-faena transition-colors">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm text-faena-300 hover:text-faena transition-colors"
+                >
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
@@ -104,14 +134,18 @@ export default function Login() {
           </form>
 
           <div className="mt-6 space-y-3">
-            <p className="text-center text-gray-400 text-sm">
-              ¿No tienes cuenta?
-            </p>
+            <p className="text-center text-gray-400 text-sm">¿No tienes cuenta?</p>
             <div className="grid grid-cols-2 gap-3">
-              <Link href="/auth/signup?role=operador" className="btn-secondary text-center text-sm">
+              <Link
+                href="/auth/signup?role=operador"
+                className="btn-secondary text-center text-sm"
+              >
                 Soy Operador
               </Link>
-              <Link href="/auth/signup?role=empresa" className="btn-secondary text-center text-sm">
+              <Link
+                href="/auth/signup?role=empresa"
+                className="btn-secondary text-center text-sm"
+              >
                 Soy Empresa
               </Link>
             </div>

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { emailSchema } from '@/lib/validations/auth';
+import { checkAuthRateLimit } from '@/lib/auth/check-rate-limit';
 
 export default function ForgotPassword() {
   const supabase = createClient();
@@ -19,16 +21,28 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
+      const rl = await checkAuthRateLimit('forgotPassword');
+      if (!rl.ok) throw new Error(rl.error || 'Demasiados intentos');
+
+      const parsed = emailSchema.safeParse(email);
+      if (!parsed.success) {
+        throw new Error(parsed.error.errors[0]?.message || 'Email inválido');
+      }
+
       const redirectTo = `${window.location.origin}/auth/callback?next=/auth/reset-password`;
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
-      });
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        parsed.data,
+        { redirectTo }
+      );
 
       if (resetError) throw resetError;
 
+      // Siempre mostrar éxito (no enumerar emails existentes)
       setSent(true);
-    } catch (err: any) {
-      setError(err.message || 'Error al enviar el email de recuperación');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Error al enviar el email de recuperación';
+      setError(message);
     } finally {
       setLoading(false);
     }

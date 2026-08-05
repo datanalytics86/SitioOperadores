@@ -72,3 +72,30 @@ No se cambian versiones (son válidas). Solo se eliminan paquetes fantasma y se 
 - [PR B] 7 archivos migrados al nuevo patrón createClient().
 - [PR B] middleware.ts protege /dashboard/* server-side; matcher excluye assets y PWA.
 - [PR B] Build: 10 rutas, 0 errores.
+
+---
+
+## FASE 0 — Auditoría (2026-08-04)
+
+Ver `ARCHITECTURE.md` para el informe completo.
+
+- Default branch GitHub corregido: `claude/recruitment-…` → `main`.
+- Branch de trabajo: `feature/tier1-excellence`.
+- Confirmados los 10 gaps prioritarios + hallazgos extra (privilege escalation en `users.role`, INSERT ausente en operadores/empresas).
+
+## FASE 1 — Seguridad y Correctness (2026-08-04)
+
+### Decisiones
+1. **Middleware de roles** lee `public.users.role` y cachea en cookie httpOnly `of_role` (1h). Layouts de servidor en `/dashboard/operador` y `/dashboard/empresa` como defense-in-depth.
+2. **Password policy** Zod: min 8 + mayúscula + minúscula + dígito. Sin símbolo obligatorio (UX operadores móviles).
+3. **Rate limit** Map en memoria + interfaz Upstash Redis REST. Endpoint `/api/auth/rate-limit` para login/signup/forgot. Fail-open si el endpoint cae.
+4. **RLS 014**: INSERT perfiles, UNIQUE user_id, trigger anti-escalación de rol, notificaciones solo `leida_en`.
+5. **next/font** Bebas Neue + Inter (elimina FOIT de Google Fonts CDN).
+6. **next/image** `*.supabase.co/storage/**` + headers de seguridad básicos.
+
+### Aplicar en Supabase
+```sql
+-- Ejecutar en SQL Editor del proyecto:
+-- supabase/migrations/20260804000000_014_harden_rls_security.sql
+```
+

@@ -1,9 +1,24 @@
 import type { Metadata } from 'next';
+import { Bebas_Neue, Inter } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const bebasNeue = Bebas_Neue({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-bebas',
+});
 
 export const metadata: Metadata = {
   title: 'OperadoresFaena.cl — Empleos para Operadores de Maquinaria Pesada en Chile',
-  description: 'La plataforma #1 en Chile para operadores de maquinaria pesada y camiones. CAEX, cargadores frontales, retroexcavadoras y más. Encuentra empleo o publica tu vacante.',
+  description:
+    'La plataforma #1 en Chile para operadores de maquinaria pesada y camiones. CAEX, cargadores frontales, retroexcavadoras y más. Encuentra empleo o publica tu vacante.',
   metadataBase: new URL('https://operadoresfaena.cl'),
   openGraph: {
     title: 'OperadoresFaena.cl',
@@ -19,19 +34,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="scroll-smooth">
+    <html
+      lang="es"
+      className={`scroll-smooth ${inter.variable} ${bebasNeue.variable}`}
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
         <meta name="theme-color" content="#111111" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="OperadoresFaena" />
       </head>
-      <body>
-        {children}
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
