@@ -108,3 +108,34 @@ export interface Pago {
   created_at: string;
   updated_at: string;
 }
+
+export interface Mensaje {
+  id: string;
+  vacante_id: string;
+  operador_id: string;
+  empresa_id: string;
+  emisor: 'operador' | 'empresa';
+  texto: string;
+  leido_en?: string | null;
+  created_at: string;
+}
+
+export interface Notificacion {
+  id: string;
+  user_id: string;
+  tipo: 'postulacion_nueva' | 'postulacion_estado' | 'mensaje' | 'sistema';
+  payload: {
+    titulo?: string;
+    mensaje?: string;
+    link?: string;
+    vacante_id?: string;
+    postulacion_id?: string;
+  };
+  leida_en?: string | null;
+  created_at: string;
+}
+
+/** Extiende Postulacion con mensaje del operador (migración 013) */
+export type PostulacionConMensaje = Postulacion & {
+  mensaje?: string | null;
+};

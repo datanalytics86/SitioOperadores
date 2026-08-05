@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { EditEmpresaForm } from '@/components/dashboard/EditEmpresaForm';
 
 export default function EmpresaDashboard() {
   const supabase = createClient();
@@ -111,43 +112,25 @@ export default function EmpresaDashboard() {
             </button>
           </div>
 
-          {/* Company Card */}
-          <div className="card p-8 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Información de la Empresa</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">RUT</p>
-                <p className="text-white">{empresa?.rut}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Teléfono</p>
-                <p className="text-white">{empresa?.telefono}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Región</p>
-                <p className="text-white">{empresa?.region}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Ciudad</p>
-                <p className="text-white">{empresa?.ciudad}</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-6">
-              ¿Necesitas editar estos datos? Próximamente. Por ahora, contáctanos en{' '}
-              <a href="mailto:contacto@operadoresfaena.cl" className="text-faena-300 hover:text-faena">
-                contacto@operadoresfaena.cl
-              </a>
-              .
-            </p>
-          </div>
+          {empresa && (
+            <EditEmpresaForm
+              empresa={empresa}
+              onSaved={(next) => setEmpresa({ ...empresa, ...next })}
+            />
+          )}
 
           {/* Vacantes */}
           <div className="card p-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
               <h2 className="text-2xl font-bold text-white">Mis Vacantes</h2>
-              <Link href="/dashboard/empresa/nueva-vacante" className="btn-primary">
-                + Nueva vacante
-              </Link>
+              <div className="flex gap-2">
+                <Link href="/dashboard/empresa/mensajes" className="btn-secondary text-sm">
+                  Mensajes
+                </Link>
+                <Link href="/dashboard/empresa/nueva-vacante" className="btn-primary text-sm">
+                  + Nueva vacante
+                </Link>
+              </div>
             </div>
             {vacantes.length === 0 ? (
               <div className="text-center py-8">
@@ -159,18 +142,26 @@ export default function EmpresaDashboard() {
             ) : (
               <div className="space-y-4">
                 {vacantes.map((vacante) => (
-                  <div key={vacante.id} className="border border-ink-600 rounded-lg p-4 flex justify-between items-center">
+                  <div
+                    key={vacante.id}
+                    className="border border-ink-600 rounded-lg p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3"
+                  >
                     <div>
                       <h3 className="text-white font-semibold">{vacante.titulo}</h3>
-                      <p className="text-gray-400 text-sm">{vacante.equipo_requerido} • {vacante.region}</p>
+                      <p className="text-gray-400 text-sm">
+                        {vacante.equipo_requerido} • {vacante.region}
+                        {vacante.activa === false && (
+                          <span className="ml-2 text-xs text-amber-400">(inactiva)</span>
+                        )}
+                      </p>
                     </div>
                     <div className="flex gap-2">
-                      <button className="px-4 py-2 bg-ink-600 hover:bg-ink-700 rounded text-sm text-white transition-colors">
+                      <Link
+                        href={`/dashboard/empresa/vacantes/${vacante.id}/postulantes`}
+                        className="px-4 py-2 bg-faena/20 hover:bg-faena/30 border border-faena/40 rounded text-sm text-faena-300 transition-colors"
+                      >
                         Ver postulantes
-                      </button>
-                      <button className="px-4 py-2 bg-ink-600 hover:bg-ink-700 rounded text-sm text-white transition-colors">
-                        Editar
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 ))}

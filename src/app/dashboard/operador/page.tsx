@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { EditOperadorForm } from '@/components/dashboard/EditOperadorForm';
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const MAX_CV_BYTES = 10 * 1024 * 1024;
@@ -277,33 +278,17 @@ export default function OperadorDashboard() {
             </div>
           </div>
 
-          <div className="card p-8 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Mi Perfil</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">RUT</p>
-                <p className="text-white">{operador?.rut}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Teléfono</p>
-                <p className="text-white">{operador?.telefono}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Región</p>
-                <p className="text-white">{operador?.region}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Ciudad</p>
-                <p className="text-white">{operador?.ciudad}</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-6">
-              ¿Necesitas editar estos datos? Próximamente. Por ahora, contáctanos en{' '}
-              <a href="mailto:contacto@operadoresfaena.cl" className="text-faena-300 hover:text-faena">
-                contacto@operadoresfaena.cl
-              </a>
-              .
-            </p>
+          {operador && (
+            <EditOperadorForm
+              operador={operador}
+              onSaved={(next) => setOperador({ ...operador, ...next })}
+            />
+          )}
+
+          <div className="flex justify-end mb-4">
+            <Link href="/dashboard/operador/mensajes" className="btn-secondary text-sm">
+              Mensajes
+            </Link>
           </div>
 
           <div className="card p-8">
