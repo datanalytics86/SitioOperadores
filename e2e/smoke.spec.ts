@@ -45,6 +45,9 @@ test.describe('Auth UX', () => {
 
   test('forgot password form', async ({ page }) => {
     await page.goto('/auth/forgot-password');
+    await expect(
+      page.getByRole('heading', { name: /olvidaste tu contraseña/i })
+    ).toBeVisible();
     await expect(page.getByLabel(/correo/i)).toBeVisible();
   });
 });
