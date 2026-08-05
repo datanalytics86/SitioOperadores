@@ -60,9 +60,9 @@ export default function Footer() {
             <ul className="space-y-2.5">
               {[
                 { href: '/auth/signup?role=empresa', label: 'Publicar vacante' },
+                { href: '/planes', label: 'Planes y precios' },
                 { href: '/dashboard/empresa', label: 'Mi empresa' },
                 { href: '/dashboard/empresa/nueva-vacante', label: 'Nueva vacante' },
-                { href: '/#empresas', label: 'Cómo funciona' },
               ].map(l => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-sm text-gray-400 hover:text-faena-300 transition-colors">

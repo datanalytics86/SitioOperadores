@@ -108,3 +108,26 @@ Ver `ARCHITECTURE.md` para el informe completo.
 4. **Server Actions**: `postularAction`, `createVacanteAction`, `updateOperador/EmpresaPerfilAction`, `updatePostulacionEstadoAction` — todos con Zod.
 5. **PostulacionModal** usa Server Action (no insert client directo).
 
+## FASE 3 — Producto Core (2026-08-04)
+
+- EditOperadorForm / EditEmpresaForm
+- `/dashboard/empresa/vacantes/[id]/postulantes` + cambio de estado
+- NotificationBell + Realtime
+- ChatPanel + rutas mensajes
+- `scripts/seed.sql`
+
+## FASE 4 — Calidad (2026-08-04)
+
+- GitHub Actions: lint + tsc + build + Playwright
+- Vitest: auth + roles
+- Playwright smoke e2e
+- Sentry stub (`src/lib/sentry.ts`)
+- Docs: README, CLAUDE, SETUP, RUNBOOK, ACCESSIBILITY
+
+## FASE 5 — Monetización (2026-08-04)
+
+- `/planes` UI con planes de DB o fallback
+- `/api/payments/create` scaffold Transbank (flag off)
+- `/dashboard/admin` KPIs
+- Checklist WCAG 2.2 + Runbook rollback
+

@@ -139,12 +139,12 @@ Storage buckets: `operadores`, `empresas`, `documentos` (privados a nivel bucket
 
 | Fase | Estado | Entregable |
 |---|---|---|
-| 0 Auditoría + setup | ✅ Hecho | Este doc + branch + default branch |
-| 1 Seguridad y correctness | 🔄 En curso | Roles middleware, password, RLS, fonts, images |
-| 2 Arquitectura y performance | ⏳ | RSC landing/vacantes, Server Actions, mocks flag |
-| 3 Producto core | ⏳ | Perfil edit, postulantes, notif, chat, seed |
-| 4 Calidad | ⏳ | CI, Playwright, Vitest, Sentry, docs |
-| 5 Monetización + excelencia | ⏳ | Planes, admin, a11y, runbook |
+| 0 Auditoría + setup | ✅ | ARCHITECTURE.md + branch `feature/tier1-excellence` + default `main` |
+| 1 Seguridad y correctness | ✅ | Roles middleware, password, RLS 014, fonts, images |
+| 2 Arquitectura y performance | ✅ | RSC landing/vacantes, Server Actions, mocks flag |
+| 3 Producto core | ✅ | Perfil edit, postulantes, notif, chat, seed |
+| 4 Calidad | ✅ | CI, Playwright, Vitest, Sentry stub, docs |
+| 5 Monetización + excelencia | ✅ | Planes, Transbank scaffold, admin, a11y, runbook |
 
 ---
 

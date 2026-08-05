@@ -77,7 +77,10 @@ jobs:
       - name: Start server & run e2e
         run: |
           npm run start &
-          npx wait-on http://127.0.0.1:3000 --timeout 60000
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000 >/dev/null; then break; fi
+            sleep 1
+          done
           npx playwright test
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
