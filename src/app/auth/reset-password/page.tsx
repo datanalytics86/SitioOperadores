@@ -6,6 +6,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import {
+  PASSWORD_HINT,
+  resetPasswordSchema,
+  validatePassword,
+} from '@/lib/validations/auth';
 
 export default function ResetPassword() {
   const supabase = createClient();
@@ -19,7 +24,9 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setError('El enlace de recuperación es inválido o expiró. Solicita uno nuevo.');
       }
@@ -32,29 +39,32 @@ export default function ResetPassword() {
     e.preventDefault();
     setError('');
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (password !== confirm) {
-      setError('Las contraseñas no coinciden');
+    const parsed = resetPasswordSchema.safeParse({ password, confirm });
+    if (!parsed.success) {
+      setError(parsed.error.errors[0]?.message || 'Datos inválidos');
       return;
     }
 
     setLoading(true);
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: parsed.data.password,
+      });
       if (updateError) throw updateError;
 
       setDone(true);
       setTimeout(() => router.push('/auth/login'), 2500);
-    } catch (err: any) {
-      setError(err.message || 'Error al actualizar la contraseña');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Error al actualizar la contraseña';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
+
+  const passwordHint = password ? validatePassword(password) : null;
 
   return (
     <>
@@ -85,30 +95,45 @@ export default function ResetPassword() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label
+                      className="block text-sm font-medium text-gray-300 mb-2"
+                      htmlFor="new-password"
+                    >
                       Nueva contraseña
                     </label>
                     <input
+                      id="new-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
+                      autoComplete="new-password"
                       className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-faena"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder={PASSWORD_HINT}
                     />
+                    <p
+                      className={`mt-1.5 text-xs ${passwordHint ? 'text-amber-400' : 'text-gray-500'}`}
+                    >
+                      {passwordHint || PASSWORD_HINT}
+                    </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label
+                      className="block text-sm font-medium text-gray-300 mb-2"
+                      htmlFor="confirm-password"
+                    >
                       Confirmar contraseña
                     </label>
                     <input
+                      id="confirm-password"
                       type="password"
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
+                      autoComplete="new-password"
                       className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-faena"
                       placeholder="Repite tu contraseña"
                     />
@@ -124,7 +149,10 @@ export default function ResetPassword() {
                 </form>
 
                 <p className="text-center text-gray-400 text-sm mt-6">
-                  <Link href="/auth/login" className="text-faena-300 hover:text-faena transition-colors">
+                  <Link
+                    href="/auth/login"
+                    className="text-faena-300 hover:text-faena transition-colors"
+                  >
                     Volver al login
                   </Link>
                 </p>

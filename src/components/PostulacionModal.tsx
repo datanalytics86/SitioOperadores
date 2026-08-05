@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { postularAction } from '@/app/actions/postulaciones';
 
 interface Vacante {
   id: string;
   titulo: string;
   equipo_requerido: string;
-  empresa?: { nombre: string };
+  empresa?: { nombre: string } | null;
   region: string;
   turno: string;
 }
@@ -23,10 +24,14 @@ type Step = 'loading' | 'form' | 'success' | 'login';
 export default function PostulacionModal({ vacante, onClose }: Props) {
   const supabase = createClient();
   const [step, setStep] = useState<Step>('loading');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [operadorProfile, setOperadorProfile] = useState<any>(null);
+  const [operadorProfile, setOperadorProfile] = useState<{
+    id: string;
+    nombre_completo: string;
+    telefono: string;
+  } | null>(null);
   const [comentario, setComentario] = useState('');
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     document.body.classList.add('overflow-hidden');
@@ -35,7 +40,9 @@ export default function PostulacionModal({ vacante, onClose }: Props) {
 
   useEffect(() => {
     const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setStep('login');
         return;
@@ -56,172 +63,164 @@ export default function PostulacionModal({ vacante, onClose }: Props) {
     check();
   }, [supabase]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!operadorProfile) {
       setStep('login');
       return;
     }
-    setError('');
-    setLoading(true);
+    if (vacante.id.startsWith('mock-')) {
+      setError('Esta vacante es de demostración. No se puede postular.');
+      return;
+    }
 
-    try {
-      const { error: err } = await supabase.from('postulaciones').insert({
+    setError('');
+    startTransition(async () => {
+      const result = await postularAction({
         vacante_id: vacante.id,
-        operador_id: operadorProfile.id,
-        estado: 'pendiente',
         mensaje: comentario || null,
       });
-      if (err) throw err;
-      setStep('success');
-    } catch (err: any) {
-      if (err.message?.includes('duplicate') || err.code === '23505') {
-        setError('Ya postulaste a esta vacante anteriormente.');
-      } else {
-        setError(err.message || 'Error al enviar postulación');
+      if (result.success === false) {
+        setError(result.error);
+        return;
       }
-    } finally {
-      setLoading(false);
-    }
+      setStep('success');
+    });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg bg-ink-700 rounded-2xl border border-ink-600 shadow-2xl overflow-hidden">
-
-        {/* Header */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="postulacion-title"
+        className="relative w-full max-w-lg bg-ink-700 rounded-2xl border border-ink-600 shadow-2xl overflow-hidden"
+      >
         <div className="flex items-start justify-between p-6 border-b border-ink-600">
           <div className="flex-1 min-w-0 pr-4">
             <p className="text-xs text-faena-300 font-semibold uppercase tracking-wider mb-1">
               Postulación
             </p>
-            <h2 className="text-lg font-bold text-white line-clamp-2">{vacante.titulo}</h2>
-            <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-400">
-              {vacante.empresa && <span>{vacante.empresa.nombre}</span>}
-              <span className="w-1 h-1 rounded-full bg-gray-600" />
-              <span>{vacante.region}</span>
-              <span className="w-1 h-1 rounded-full bg-gray-600" />
+            <h2 id="postulacion-title" className="text-xl font-bold text-white truncate">
+              {vacante.titulo}
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {vacante.empresa?.nombre} · {vacante.region} ·{' '}
               <span className="capitalize">{vacante.turno}</span>
-            </div>
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0 p-1">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-white p-1"
+            aria-label="Cerrar"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
-        {/* Body */}
         <div className="p-6">
           {step === 'loading' && (
-            <div className="text-center py-8">
-              <span className="inline-block w-6 h-6 border-2 border-faena border-t-transparent rounded-full animate-spin" />
-              <p className="text-gray-400 text-sm mt-3">Verificando perfil…</p>
+            <p className="text-gray-400 text-sm">Verificando sesión…</p>
+          )}
+
+          {step === 'login' && (
+            <div className="space-y-4">
+              <p className="text-gray-300 text-sm">
+                Para postular necesitas una cuenta de <strong>operador</strong>.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link href="/auth/login" className="btn-secondary py-3 text-sm text-center">
+                  Iniciar sesión
+                </Link>
+                <Link
+                  href="/auth/signup?role=operador"
+                  className="btn-primary py-3 text-sm text-center"
+                >
+                  Crear cuenta
+                </Link>
+              </div>
             </div>
           )}
 
           {step === 'success' && (
-            <div className="text-center py-4">
-              <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            <div className="text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
+                <svg
+                  className="w-7 h-7 text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Postulacion enviada</h3>
-              <p className="text-gray-400 text-sm mb-6">
-                La empresa revisará tu perfil y se pondrá en contacto si hay match.
+              <h3 className="text-lg font-bold text-white">¡Postulación enviada!</h3>
+              <p className="text-sm text-gray-400">
+                La empresa revisará tu perfil. Te avisaremos si hay novedades.
               </p>
-              <div className="flex gap-3">
-                <button onClick={onClose} className="flex-1 btn-secondary py-2.5 text-sm">Cerrar</button>
-                <Link href="/dashboard/operador" className="flex-1 btn-primary py-2.5 text-sm text-center">
-                  Ver mis postulaciones
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {step === 'login' && (
-            <div className="text-center py-4">
-              <div className="w-14 h-14 bg-faena/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-faena" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Crea tu perfil gratis</h3>
-              <p className="text-gray-400 text-sm mb-6">
-                Para postular necesitas tener un perfil de operador. Es rápido y gratis.
-              </p>
-              <div className="flex flex-col gap-3">
-                <Link href="/auth/signup?role=operador" className="btn-primary py-3 text-sm text-center">
-                  Crear cuenta de operador
-                </Link>
-                <Link href="/auth/login" className="btn-secondary py-3 text-sm text-center">
-                  Ya tengo cuenta — iniciar sesión
-                </Link>
-              </div>
+              <Link href="/dashboard/operador" className="btn-primary inline-block">
+                Ver mis postulaciones
+              </Link>
             </div>
           )}
 
           {step === 'form' && operadorProfile && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="bg-ink-800 rounded-xl border border-ink-600 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-faena/20 border border-faena/30 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-faena" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm">{operadorProfile.nombre_completo}</p>
-                    {operadorProfile.telefono && (
-                      <p className="text-gray-400 text-xs">{operadorProfile.telefono}</p>
-                    )}
-                  </div>
-                  <span className="ml-auto px-2 py-0.5 bg-green-500/20 text-green-300 text-xs font-semibold rounded-full">
-                    Verificado
-                  </span>
-                </div>
+              <div className="bg-ink-800 rounded-lg p-4 text-sm space-y-1">
+                <p className="text-white font-medium">{operadorProfile.nombre_completo}</p>
+                <p className="text-gray-400">{operadorProfile.telefono}</p>
               </div>
 
               <div>
-                <label htmlFor="postulacion-mensaje" className="block text-xs font-medium text-gray-400 mb-1.5">
-                  Mensaje para la empresa (opcional)
+                <label
+                  htmlFor="mensaje-postulacion"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Mensaje (opcional)
                 </label>
                 <textarea
-                  id="postulacion-mensaje"
+                  id="mensaje-postulacion"
                   value={comentario}
                   onChange={(e) => setComentario(e.target.value)}
                   rows={3}
-                  placeholder="Destaca tu experiencia, certificaciones o disponibilidad…"
-                  className="w-full px-3 py-2.5 bg-ink-800 border border-ink-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-faena resize-none"
+                  maxLength={1000}
+                  className="w-full px-4 py-2 bg-ink-800 border border-ink-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-faena"
+                  placeholder="Cuéntale a la empresa por qué eres el fit ideal…"
                 />
               </div>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-3 py-2.5 rounded-lg text-sm">
+                <div className="bg-red-500/10 border border-red-500 text-red-300 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
-              <div className="flex gap-3 pt-1">
-                <button type="button" onClick={onClose} className="flex-1 btn-secondary py-3 text-sm">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={loading} className="flex-1 btn-primary py-3 text-sm disabled:opacity-50">
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      Enviando…
-                    </span>
-                  ) : (
-                    'Enviar postulación'
-                  )}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="w-full btn-primary disabled:opacity-50"
+              >
+                {isPending ? 'Enviando…' : 'Enviar postulación'}
+              </button>
             </form>
           )}
         </div>

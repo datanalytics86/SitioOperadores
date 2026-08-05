@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -76,6 +77,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-3">
             {user ? (
               <>
+                <NotificationBell />
                 <Link
                   href={userRole === 'empresa' ? '/dashboard/empresa' : '/dashboard/operador'}
                   className="text-sm text-gray-300 hover:text-faena-300 transition-colors"

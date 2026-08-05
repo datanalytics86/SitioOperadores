@@ -1,63 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { createVacanteAction } from '@/app/actions/vacantes';
+import { EQUIPOS, REGIONES } from '@/lib/constants/chile';
 
 export default function NuevaVacante() {
-  const supabase = createClient();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    const formData = new FormData(e.currentTarget);
 
-    try {
-      const formData = new FormData(e.currentTarget);
-      const { data: { user } } = await supabase.auth.getUser();
+    const payload = {
+      titulo: formData.get('titulo'),
+      descripcion: formData.get('descripcion'),
+      equipo_requerido: formData.get('equipo_requerido'),
+      experiencia_minima: formData.get('experiencia_minima') || 0,
+      region: formData.get('region'),
+      ciudad: formData.get('ciudad'),
+      turno: formData.get('turno'),
+      salario_min: formData.get('salario_min') || null,
+      salario_max: formData.get('salario_max') || null,
+      cantidad_vacantes: formData.get('cantidad_vacantes') || 1,
+    };
 
-      if (!user) throw new Error('No user found');
-
-      // Get empresa
-      const { data: empresa } = await supabase
-        .from('empresas')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!empresa) throw new Error('Empresa not found');
-
-      // Create vacante
-      const { error: insertError } = await supabase
-        .from('vacantes')
-        .insert({
-          empresa_id: empresa.id,
-          titulo: formData.get('titulo'),
-          descripcion: formData.get('descripcion'),
-          equipo_requerido: formData.get('equipo_requerido'),
-          experiencia_minima: parseInt(formData.get('experiencia_minima') as string) || 0,
-          region: formData.get('region'),
-          ciudad: formData.get('ciudad'),
-          turno: formData.get('turno'),
-          salario_min: formData.get('salario_min') ? parseInt(formData.get('salario_min') as string) : null,
-          salario_max: formData.get('salario_max') ? parseInt(formData.get('salario_max') as string) : null,
-          cantidad_vacantes: parseInt(formData.get('cantidad_vacantes') as string) || 1,
-          activa: true,
-        });
-
-      if (insertError) throw insertError;
-
+    startTransition(async () => {
+      const result = await createVacanteAction(payload);
+      if (result.success === false) {
+        setError(result.error);
+        return;
+      }
       router.push('/dashboard/empresa');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+      router.refresh();
+    });
   };
 
   return (
@@ -77,67 +58,83 @@ export default function NuevaVacante() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="titulo">
                     Título del puesto
                   </label>
                   <input
+                    id="titulo"
                     type="text"
                     name="titulo"
                     required
+                    minLength={5}
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
                     placeholder="ej: Operador CAEX"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                    htmlFor="equipo_requerido"
+                  >
                     Equipo a operar
                   </label>
                   <select
+                    id="equipo_requerido"
                     name="equipo_requerido"
                     required
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
                   >
                     <option value="">Seleccionar equipo</option>
-                    <option value="CAEX">CAEX</option>
-                    <option value="Cargador Frontal">Cargador Frontal</option>
-                    <option value="Retroexcavadora">Retroexcavadora</option>
-                    <option value="Camión Minero">Camión Minero</option>
-                    <option value="Excavadora">Excavadora</option>
-                    <option value="Bulldozer">Bulldozer</option>
+                    {EQUIPOS.map((eq) => (
+                      <option key={eq} value={eq}>
+                        {eq}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                  htmlFor="descripcion"
+                >
                   Descripción
                 </label>
                 <textarea
+                  id="descripcion"
                   name="descripcion"
                   required
+                  minLength={20}
                   rows={5}
                   className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
-                  placeholder="Describe el puesto, responsabilidades, etc."
-                ></textarea>
+                  placeholder="Describe el puesto, responsabilidades, beneficios, etc."
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                    htmlFor="experiencia_minima"
+                  >
                     Experiencia mínima (años)
                   </label>
                   <input
+                    id="experiencia_minima"
                     type="number"
                     name="experiencia_minima"
-                    min="0"
+                    min={0}
+                    defaultValue={0}
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="turno">
                     Turno
                   </label>
                   <select
+                    id="turno"
                     name="turno"
                     required
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
@@ -152,22 +149,29 @@ export default function NuevaVacante() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="region">
                     Región
                   </label>
-                  <input
-                    type="text"
+                  <select
+                    id="region"
                     name="region"
                     required
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
-                    placeholder="ej: Atacama"
-                  />
+                  >
+                    <option value="">Seleccionar</option>
+                    {REGIONES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="ciudad">
                     Ciudad
                   </label>
                   <input
+                    id="ciudad"
                     type="text"
                     name="ciudad"
                     required
@@ -179,44 +183,60 @@ export default function NuevaVacante() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                    htmlFor="salario_min"
+                  >
                     Sueldo mínimo (CLP)
                   </label>
                   <input
+                    id="salario_min"
                     type="number"
                     name="salario_min"
-                    min="0"
+                    min={0}
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                    htmlFor="salario_max"
+                  >
                     Sueldo máximo (CLP)
                   </label>
                   <input
+                    id="salario_max"
                     type="number"
                     name="salario_max"
-                    min="0"
+                    min={0}
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                    htmlFor="cantidad_vacantes"
+                  >
                     Cantidad de vacantes
                   </label>
                   <input
+                    id="cantidad_vacantes"
                     type="number"
                     name="cantidad_vacantes"
-                    min="1"
-                    defaultValue="1"
+                    min={1}
+                    defaultValue={1}
                     className="w-full px-4 py-2 bg-ink-700 border border-ink-600 rounded-lg text-white"
                   />
                 </div>
               </div>
 
               <div className="flex gap-4 pt-6">
-                <button type="submit" disabled={loading} className="btn-primary flex-1 disabled:opacity-50">
-                  {loading ? 'Publicando...' : 'Publicar vacante'}
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {isPending ? 'Publicando...' : 'Publicar vacante'}
                 </button>
                 <button
                   type="button"

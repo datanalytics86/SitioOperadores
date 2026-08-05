@@ -72,3 +72,62 @@ No se cambian versiones (son válidas). Solo se eliminan paquetes fantasma y se 
 - [PR B] 7 archivos migrados al nuevo patrón createClient().
 - [PR B] middleware.ts protege /dashboard/* server-side; matcher excluye assets y PWA.
 - [PR B] Build: 10 rutas, 0 errores.
+
+---
+
+## FASE 0 — Auditoría (2026-08-04)
+
+Ver `ARCHITECTURE.md` para el informe completo.
+
+- Default branch GitHub corregido: `claude/recruitment-…` → `main`.
+- Branch de trabajo: `feature/tier1-excellence`.
+- Confirmados los 10 gaps prioritarios + hallazgos extra (privilege escalation en `users.role`, INSERT ausente en operadores/empresas).
+
+## FASE 1 — Seguridad y Correctness (2026-08-04)
+
+### Decisiones
+1. **Middleware de roles** lee `public.users.role` y cachea en cookie httpOnly `of_role` (1h). Layouts de servidor en `/dashboard/operador` y `/dashboard/empresa` como defense-in-depth.
+2. **Password policy** Zod: min 8 + mayúscula + minúscula + dígito. Sin símbolo obligatorio (UX operadores móviles).
+3. **Rate limit** Map en memoria + interfaz Upstash Redis REST. Endpoint `/api/auth/rate-limit` para login/signup/forgot. Fail-open si el endpoint cae.
+4. **RLS 014**: INSERT perfiles, UNIQUE user_id, trigger anti-escalación de rol, notificaciones solo `leida_en`.
+5. **next/font** Bebas Neue + Inter (elimina FOIT de Google Fonts CDN).
+6. **next/image** `*.supabase.co/storage/**` + headers de seguridad básicos.
+
+### Aplicar en Supabase
+```sql
+-- Ejecutar en SQL Editor del proyecto:
+-- supabase/migrations/20260804000000_014_harden_rls_security.sql
+```
+
+## FASE 2 — Arquitectura y Performance (2026-08-04)
+
+### Decisiones
+1. **Landing + /vacantes** son Server Components con `export const revalidate = 60`. Fetch en `src/lib/data/vacantes.ts`.
+2. **Mocks** solo si `NODE_ENV===development` o `NEXT_PUBLIC_USE_MOCKS=true`. Banner visible cuando `fromMock`.
+3. **Filtros** sincronizan URL (`searchParams`); búsqueda con debounce 350ms (`useDebouncedValue`).
+4. **Server Actions**: `postularAction`, `createVacanteAction`, `updateOperador/EmpresaPerfilAction`, `updatePostulacionEstadoAction` — todos con Zod.
+5. **PostulacionModal** usa Server Action (no insert client directo).
+
+## FASE 3 — Producto Core (2026-08-04)
+
+- EditOperadorForm / EditEmpresaForm
+- `/dashboard/empresa/vacantes/[id]/postulantes` + cambio de estado
+- NotificationBell + Realtime
+- ChatPanel + rutas mensajes
+- `scripts/seed.sql`
+
+## FASE 4 — Calidad (2026-08-04)
+
+- GitHub Actions: lint + tsc + build + Playwright
+- Vitest: auth + roles
+- Playwright smoke e2e
+- Sentry stub (`src/lib/sentry.ts`)
+- Docs: README, CLAUDE, SETUP, RUNBOOK, ACCESSIBILITY
+
+## FASE 5 — Monetización (2026-08-04)
+
+- `/planes` UI con planes de DB o fallback
+- `/api/payments/create` scaffold Transbank (flag off)
+- `/dashboard/admin` KPIs
+- Checklist WCAG 2.2 + Runbook rollback
+

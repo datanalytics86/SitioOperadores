@@ -1,17 +1,22 @@
 {
-  "name": "project",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "operadoresfaena",
+  "version": "1.1.0",
+  "description": "OperadoresFaena.cl — portal de empleo para operadores de maquinaria pesada en Chile",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["chile", "empleo", "operadores", "mineria", "nextjs"],
+  "author": "OperadoresFaena.cl",
+  "license": "UNLICENSED",
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
@@ -31,7 +36,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^15.5.15"
+    "eslint-config-next": "^15.5.15",
+    "vitest": "^3.0.0"
   }
 }
