@@ -99,3 +99,12 @@ Ver `ARCHITECTURE.md` para el informe completo.
 -- supabase/migrations/20260804000000_014_harden_rls_security.sql
 ```
 
+## FASE 2 — Arquitectura y Performance (2026-08-04)
+
+### Decisiones
+1. **Landing + /vacantes** son Server Components con `export const revalidate = 60`. Fetch en `src/lib/data/vacantes.ts`.
+2. **Mocks** solo si `NODE_ENV===development` o `NEXT_PUBLIC_USE_MOCKS=true`. Banner visible cuando `fromMock`.
+3. **Filtros** sincronizan URL (`searchParams`); búsqueda con debounce 350ms (`useDebouncedValue`).
+4. **Server Actions**: `postularAction`, `createVacanteAction`, `updateOperador/EmpresaPerfilAction`, `updatePostulacionEstadoAction` — todos con Zod.
+5. **PostulacionModal** usa Server Action (no insert client directo).
+
